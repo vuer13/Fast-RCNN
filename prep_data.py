@@ -2,7 +2,7 @@ import os, uuid
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 from ultralytics import YOLO
-import glob, shutil
+import glob, shutil 
 
 register_heif_opener()
 
@@ -41,7 +41,7 @@ output_dir = "./cropped_cards"
 model = YOLO("yolo.pt")
 results = model.predict(source=input_dir, save_crop=True, project=output_dir, name="run1")
 
-crop_dir = os.path.join(output_dir, "run1", "crops", "card")
+crop_dir = os.path.join(output_dir, "run1", "crops", "hockey_card")
 final_dir = "./data/cards"
 os.makedirs(final_dir, exist_ok=True)
 

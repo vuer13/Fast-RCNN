@@ -1,5 +1,7 @@
 dataset/
 .venv/
 data/
+prepped_data/
+cropped_cards/
 
 yolo.pt
