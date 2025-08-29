@@ -1,1 +1,5 @@
 dataset/
+.venv/
+data/
+
+yolo.pt
