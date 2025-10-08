@@ -4,4 +4,6 @@ data/
 prepped_data/
 cropped_cards/
 
+.DS_Store
+
 yolo.pt
