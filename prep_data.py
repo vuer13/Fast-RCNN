@@ -6,29 +6,35 @@ import glob, shutil
 
 register_heif_opener()
 
+# Directory for cards
 input_dir = './dataset'
 output_dir = './prepped_data/cards'
 os.makedirs(output_dir, exist_ok=True)
 
+# Metrics to hold
 MAX_LONG_SIDE = 1600 
 count = 1
 
+# Save each image as a jpg
 def save_jpg(src_path, dst_dir, i):
     img = Image.open(src_path)
     img = ImageOps.exif_transpose(img)
     w, h = img.size
     
+    # Resizing image
     scale = min(1.0, MAX_LONG_SIDE / max(w, h))
     if scale < 1.0:
         img = img.resize((int(w*scale), int(h*scale)), Image.LANCZOS)
         
     img = img.convert("RGB")
     
+    # saving image
     out_name = f"card_{i:04d}.jpg"
     out_path = os.path.join(dst_dir, out_name)
     img.save(out_path, "JPEG", quality=92, optimize=True, progressive=True)
     return out_name
 
+# for all images, give it a new name based on the function above
 for fname in sorted(os.listdir(input_dir)):
     if fname.lower().endswith((".heic", ".heif", ".png", ".jpg", ".jpeg")):
         src = os.path.join(input_dir, fname)
@@ -37,10 +43,12 @@ for fname in sorted(os.listdir(input_dir)):
 
 input_dir= './prepped_data/cards'
 output_dir = "./cropped_cards"
-        
+
+# Set up model to crop cards        
 model = YOLO("yolo.pt")
 results = model.predict(source=input_dir, save_crop=True, project=output_dir, name="run1")
 
+# Get all the cards and move to one directory
 crop_dir = os.path.join(output_dir, "run1", "crops", "hockey_card")
 final_dir = "./data/cards"
 os.makedirs(final_dir, exist_ok=True)
