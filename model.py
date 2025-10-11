@@ -32,4 +32,26 @@ val_loader=DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=lamb
 
 # Getting the model and loading with ResNet50 backbone
 def get_model(num_classes):
-    # TODO
+    # Load pre-trained model
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pre_trained=True)
+    
+    # Number of input features for classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    
+    # Replace with new head
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    
+    return model
+
+# intializing model
+num_classes = 6  # 5 classes + background
+model = get_model(num_classes)
+
+# model to gpu if possible (may train in notebook)
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+model.to(device)
+
+# Optimizer and LR
+params = [p for p in model.parameters() if p.requires_grad]
+optimizer = torch.optim.SGD(params, lr=1e-3, momentum=0.9, weight_decay=0.0005) # to update weights in backward pass
+lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
