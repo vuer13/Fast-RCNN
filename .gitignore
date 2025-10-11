@@ -3,6 +3,7 @@ dataset/
 data/
 prepped_data/
 cropped_cards/
+model/
 
 .DS_Store
 
