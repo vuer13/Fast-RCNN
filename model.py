@@ -18,12 +18,12 @@ def get_coco_dataset(img_dir, annotation_file):
 
 # Loading datasets
 train_dataset = get_coco_dataset(
-    img_dir='./data/train/image',
+    img_dir='./data/train/images',
     annotation_file='./data/train/annotations.json'
 )
 
 val_dataset = get_coco_dataset(
-    img_dir='./data/val/image',
+    img_dir='./data/val/images',
     annotation_file='./data/val/annotations.json'
 )
 
@@ -80,11 +80,11 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
             
             # Only process is there are boxes in the image
             if boxes:
-                processed_targets{
+                processed_target = {
                     'boxes': torch.tensor(boxes, dtype=torch.float32).to(device),
                     'labels': torch.tensor(labels, dtype=torch.int64).to(device)
                 }
-                processed_targets.append(processed_targets)
+                processed_targets.append(processed_target)
                 valid_images.append(images[i]) # valid images only
                 
         # skip if no valid targets
@@ -104,7 +104,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
         
     print(f"Epoch {epoch}, Loss: {losses.item()}")
     
-epochs = 50
+epochs = 10
 for epoch in range(epochs):
     train_one_epoch(model, optimizer, train_loader, device, epoch)
     lr_scheduler.step()
