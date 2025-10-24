@@ -10,30 +10,22 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.datasets import CocoDetection
 from torchvision.transforms import functional as F
-
-import matplotlib.pyplot as plt
-from PIL import Image
+from torchvision.ops import box_iou
 
 # import class from another file
 from coco import CocoTransform
 
+LABEL_NAMES = {
+    1: "name",
+    2: "card number",
+    3: "card series",
+    4: "team name",
+    5: "card type"
+}
+
 # dataset class
 def get_coco_dataset(img_dir, annotation_file):
     return CocoDetection(root=img_dir, annFile=annotation_file, transforms=CocoTransform())
-
-# Loading datasets
-train_dataset = get_coco_dataset(
-    img_dir='./data/train/images',
-    annotation_file='./data/train/annotations.json'
-)
-
-val_dataset = get_coco_dataset(
-    img_dir='./data/val/images',
-    annotation_file='./data/val/annotations.json'
-)
-
-train_loader=DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=lambda x: tuple(zip(*x)))
-val_loader=DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
 
 # Getting the model and loading with ResNet50 backbone
 def get_model(num_classes):
@@ -47,19 +39,6 @@ def get_model(num_classes):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     
     return model
-
-# intializing model
-num_classes = 6  # 5 classes + background
-model = get_model(num_classes)
-
-# model to gpu if possible (may train in notebook)
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-model.to(device)
-
-# Optimizer and LR
-params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=1e-3, momentum=0.9, weight_decay=0.0005) # to update weights in backward pass
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
 # Saving a checkpoint to save model state
 def save_checkpoint(model, optimizer, scheduler, epoch, path):
@@ -89,7 +68,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
     
     for images, targets in data_loader:
         # Move images to device
-        images = list(image.to(device) for image in images)\
+        images = list(image.to(device) for image in images)
         
         # Process targets - classnames and bounding box 
         processed_targets = []
@@ -139,7 +118,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
 # Evaluation
 def evaluate(model, data_loader, device, threshold=0.5):
     model.eval() # Evaluation mode
-    total_iou, count = 0, 0
+    total_iou, count = 0.0, 0
     
     with torch.no_grad():
         for images, targets in data_loader:
@@ -153,7 +132,7 @@ def evaluate(model, data_loader, device, threshold=0.5):
                 
                 # Keep predictions if > threshold
                 pred_boxes = pred['boxes'][pred['scores'] > threshold]
-                target_boxes = torch.tensor([obj['bbox'] for obj in target], device=device)
+                target_boxes = torch.tensor([obj['bbox'] for obj in target], device=device, dtype=torch.float32)
                 target_boxes[:, 2:] += target_boxes[:, :2]  # xywh -> xyxy
                 
                 # Compute IoUs between predicted and target boxes
@@ -167,7 +146,7 @@ def evaluate(model, data_loader, device, threshold=0.5):
     return mean_iou
 
 # Visualization function
-def visualize_preds(model, dataset, device, idx=0, threshold=0.5, save_dir='./output'):
+def visualize_preds(model, dataset, device, idx=0, label_names=None, threshold=0.5, save_dir='./output'):
     model.eval() # Evaluation mode
     os.makedirs(save_dir, exist_ok=True)
     
@@ -186,31 +165,75 @@ def visualize_preds(model, dataset, device, idx=0, threshold=0.5, save_dir='./ou
         if score > threshold:
             x1, y1, x2, y2 = map(int, box)
             
+            class_name = label_names.get(label.item(), str(label.item())) if label_names else str(label.item())
+            
             # Draw a bounding box around the detected object
             cv2.rectangle(img_np, (x1, y1), (x2, y2), (0, 255, 0), 2)
             
             # Labels
-            cv2.putText(img_np, f"{label.item()}:{score:.2f}", (x1, max(y1 - 5, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(img_np, f"{class_name}:{score:.2f}", (x1, max(y1 - 5, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     save_path = os.path.join(save_dir, f"pred_{idx}.jpg")
     cv2.imwrite(save_path, cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR))
     print(f"Saved visualization to {save_path}")
     model.train() # Back to train mode
-
-epochs = 10
-start_epoch = 0
-
-if os.path.exists('./model/checkpoint_latest.pth'):
-    start_epoch = loadcheckpoint(model, optimizer, lr_scheduler, './model/checkpoint_latest.pth', device)
-
-for epoch in range(start_epoch, epochs):
-    train_one_epoch(model, optimizer, train_loader, device, epoch)
-    lr_scheduler.step()
     
-    if epoch % 2 == 0:
-        mean_iou = evaluate(model, val_loader, device)
-        print(f"Validation mIoU (epoch {epoch}): {mean_iou:.4f}")
-        visualize_preds(model, val_dataset, device, idx=random.randint(0, len(val_dataset) - 1))
+def train_model(model, optimizer, scheduler, train_loader, val_loader, device, start_epoch, epochs):
+    for epoch in range(start_epoch, epochs):
+        train_one_epoch(model, optimizer, train_loader, device, epoch)
+        scheduler.step()
     
-    save_checkpoint(model, optimizer, lr_scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
-    save_checkpoint(model, optimizer, lr_scheduler, epoch, './model/checkpoint_latest.pth')
+        if epoch % 2 == 0:
+            mean_iou = evaluate(model, val_loader, device)
+            print(f"Validation mIoU (epoch {epoch}): {mean_iou:.4f}")
+            visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
+    
+        save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
+        save_checkpoint(model, optimizer, scheduler, epoch, './model/checkpoint_latest.pth')
+    
+def test_model(model, dataset, device, label_names=None, save_dir='./output/test_preds', threshold=0.5):
+    model.eval() # Evaluation mode
+    os.makedirs(save_dir, exist_ok=True)
+    for idx in range(len(dataset)):
+        visualize_preds(model, dataset, device, idx=idx, label_names=label_names, threshold=threshold, save_dir=save_dir)
+    model.train() # Back to train mode
+
+if __name__ == "__main__":
+    num_classes = 6  # 5 classes + background
+    start_epoch = 0
+    epochs = 10
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    
+    # Loading datasets
+    train_dataset = get_coco_dataset(img_dir='./data/train/images', annotation_file='./data/train/annotations.json')
+    val_dataset = get_coco_dataset(img_dir='./data/val/images', annotation_file='./data/val/annotations.json')
+
+    train_loader=DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=lambda x: tuple(zip(*x)))
+    val_loader=DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
+
+    # intializing model
+    model = get_model(num_classes)
+
+    # model to gpu if possible (may train in notebook)
+    model.to(device)
+
+    # Optimizer and LR
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=1e-3, momentum=0.9, weight_decay=0.0005) # to update weights in backward pass
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+    if os.path.exists('./model/checkpoint_latest.pth'):
+        start_epoch = loadcheckpoint(model, optimizer, lr_scheduler, './model/checkpoint_latest.pth', device)
+        
+    train_model(model, optimizer, lr_scheduler, train_loader, val_loader, device, start_epoch, epochs)
+    
+    final_iou = evaluate(model, val_loader, device)
+    print(f"Validation mIoU: {final_iou:.4f}")
+    
+    test_dataset = get_coco_dataset(img_dir='./data/test/images', annotation_file='./data/test/annotations.json')
+    test_loader = DataLoader(test_dataset, batch_size=1,shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
+    
+    final_test_iou = evaluate(model, test_loader, device)
+    print(f"Test mIoU: {final_test_iou:.4f}")
+    
+    test_model(model, test_dataset, device, label_names=LABEL_NAMES)
