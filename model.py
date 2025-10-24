@@ -56,9 +56,32 @@ params = [p for p in model.parameters() if p.requires_grad]
 optimizer = torch.optim.SGD(params, lr=1e-3, momentum=0.9, weight_decay=0.0005) # to update weights in backward pass
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
+# Saving a checkpoint to save model state
+def save_checkpoint(model, optimizer, scheduler, epoch, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict()
+    }, path)
+    print("Checkpoint saved at", path)
+
+# To load a checkpoint
+def loadcheckpoint(model, optimizer, scheduler, path, device):
+    checkpoint = torch.load(path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    start_epoch = checkpoint['epoch'] + 1
+    print("Loaded checkpoint from", path, "at epoch", start_epoch)
+    return start_epoch
+
 # Training function - trains one epoch
 def train_one_epoch(model, optimizer, data_loader, device, epoch):
     model.train()
+    losses_per_epoch = []
+    
     for images, targets in data_loader:
         # Move images to device
         images = list(image.to(device) for image in images)\
@@ -100,9 +123,13 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
         # Backward pass
         optimizer.zero_grad()
         losses.backward()
-        optimizer.step()
         
-    print(f"Epoch {epoch}, Loss: {losses.item()}")
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+        
+        optimizer.step()
+        losses_per_epoch.append(losses.item())
+        
+    print(f"Epoch {epoch}, Loss: {losses.item()}, Avg Loss: {np.mean(losses_per_epoch):.4f}")
     
 epochs = 10
 for epoch in range(epochs):
