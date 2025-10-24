@@ -186,7 +186,7 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
         if epoch % 2 == 0:
             mean_iou = evaluate(model, val_loader, device)
             print(f"Validation mIoU (epoch {epoch}): {mean_iou:.4f}")
-            visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
+            visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_loader.dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
     
         save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
         save_checkpoint(model, optimizer, scheduler, epoch, './model/checkpoint_latest.pth')
