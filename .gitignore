@@ -4,7 +4,8 @@ data/
 prepped_data/
 cropped_cards/
 model/
-
+data.zip
 .DS_Store
-
+output/training
 yolo.pt
+.DS_Store
