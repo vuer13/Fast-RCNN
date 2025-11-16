@@ -130,14 +130,17 @@ def evaluate(model, data_loader, device, threshold=0.5):
                 if len(pred['boxes']) == 0 or len(target) == 0:
                     continue
                 
-                # Keep predictions if > threshold
+                # Keep predictions if > threshold           
                 pred_boxes = pred['boxes'][pred['scores'] > threshold]
+                if len(pred_boxes) == 0:
+                    continue
                 target_boxes = torch.tensor([obj['bbox'] for obj in target], device=device, dtype=torch.float32)
                 target_boxes[:, 2:] += target_boxes[:, :2]  # xywh -> xyxy
                 
                 # Compute IoUs between predicted and target boxes
                 ious = box_iou(pred_boxes, target_boxes)
-                total_iou += ious.max(dim=1)[0].sum().item() if ious.numel() > 0 else 0
+                match_ious = ious.max(dim=1).values
+                total_iou += match_ious.mean().item()
                 count += 1
     
     model.train()
@@ -179,6 +182,7 @@ def visualize_preds(model, dataset, device, idx=0, label_names=None, threshold=0
     model.train() # Back to train mode
     
 def train_model(model, optimizer, scheduler, train_loader, val_loader, device, start_epoch, epochs):
+    best_iou = -1
     for epoch in range(start_epoch, epochs):
         train_one_epoch(model, optimizer, train_loader, device, epoch)
         scheduler.step()
@@ -187,8 +191,13 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
             mean_iou = evaluate(model, val_loader, device)
             print(f"Validation mIoU (epoch {epoch}): {mean_iou:.4f}")
             visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_loader.dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
+            if mean_iou > best_iou:
+                print(f"Best Epoch: {epoch + 1}")
+                save_checkpoint(model, optimizer, scheduler, epoch, "./model/best_model.pth")
     
-        save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
+        if epoch % 5 == 0:
+            save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
+        
         save_checkpoint(model, optimizer, scheduler, epoch, './model/checkpoint_latest.pth')
     
 def test_model(model, dataset, device, label_names=None, save_dir='./output/test_preds', threshold=0.5):
@@ -219,11 +228,16 @@ if __name__ == "__main__":
 
     # Optimizer and LR
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=1e-3, momentum=0.9, weight_decay=0.0005) # to update weights in backward pass
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    optimizer = torch.optim.AdamW(params, lr=1e-3, weight_decay=0.0005) # to update weights in backward pass
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3)
 
-    if os.path.exists('./model/checkpoint_latest.pth'):
-        start_epoch = loadcheckpoint(model, optimizer, lr_scheduler, './model/checkpoint_latest.pth', device)
+    checkpoint_path = './model/checkpoint_latest.pth'  
+
+    if os.path.exists(checkpoint_path):
+        print(f"Loading checkpoint: {checkpoint_path}")
+        start_epoch = loadcheckpoint(model, optimizer, lr_scheduler, checkpoint_path, device)
+    else:
+        print("Training New Model")
         
     train_model(model, optimizer, lr_scheduler, train_loader, val_loader, device, start_epoch, epochs)
     
