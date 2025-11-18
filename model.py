@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     # Optimizer and LR
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=1e-3, weight_decay=0.0005) # to update weights in backward pass
+    optimizer = torch.optim.AdamW(params, lr=3e-4, weight_decay=0.0005) # to update weights in backward pass
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3)
 
     checkpoint_path = './model/checkpoint_latest.pth'  
