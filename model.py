@@ -193,7 +193,7 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
             visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_loader.dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
             
         if mean_iou > best_iou:
-            print(f"Best Epoch: {epoch + 1}")
+            print(f"Best Epoch: {epoch}")
             save_checkpoint(model, optimizer, scheduler, epoch, "./model/best_model.pth")
     
         if epoch % 5 == 0:
