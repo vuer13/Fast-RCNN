@@ -2,6 +2,7 @@ import os
 import cv2
 import numpy as np
 import random
+import json
 
 import torch
 import torchvision
@@ -148,7 +149,7 @@ def evaluate(model, data_loader, device, threshold=0.5):
     
     model.train()
     mean_iou = total_iou / max(count, 1)
-    print(f"Validation mIoU: {mean_iou:.4f}")
+    print(f"mIoU: {mean_iou:.4f}")
     return mean_iou
 
 # Visualization function
@@ -242,7 +243,7 @@ def generate_coco_preds(model, data_loader, device):
                     height = y2 - y1
                     
                     # append COCO prediction
-                    result.append({
+                    results.append({
                         "image_id": int(image_id),
                         "category_id": int(label),
                         "bbox": [x1, y1, width, height],
@@ -251,8 +252,33 @@ def generate_coco_preds(model, data_loader, device):
     
     return results
 
+def load_coco_missing_fields(path):
+    with open(path, 'r') as f:
+        data = json.load(f)
+    
+    # Add missing required fields
+    if 'info' not in data:
+        data['info'] = {"description": "none"}
+
+    if 'licenses' not in data:
+        data['licenses'] = [{"id": 0, "name": "none", "url": ""}]
+
+    # license field
+    for img in data.get('images', []):
+        if 'license' not in img:
+            img['license'] = 0
+
+    # Save temporary corrected file
+    fixed_path = path.replace(".json", "_fixed.json")
+    with open(fixed_path, 'w') as f:
+        json.dump(data, f)
+    
+    return fixed_path
+
 def evaluate_coco_ap(annotations, predictions):
-    coco_gt = COCO(annotations) # truth annoations
+    fixed_annotations = load_coco_missing_fields(annotations)
+    
+    coco_gt = COCO(fixed_annotations) # truth annoations
     coco_dt = coco_gt.loadRes(predictions) # model predictions
     
     coco_eval = COCOeval(coco_gt, coco_dt, iouType='bbox')
