@@ -194,6 +194,7 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
             
         if mean_iou > best_iou:
             print(f"Best Epoch: {epoch}")
+            best_iou = mean_iou
             save_checkpoint(model, optimizer, scheduler, epoch, "./model/best_model.pth")
     
         if epoch % 5 == 0:
