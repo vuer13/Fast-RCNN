@@ -1,1 +1,2 @@
-# Fast-RCNN
+FasterRCNN - Hockey Card Annotator
+
