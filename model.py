@@ -211,7 +211,6 @@ def test_model(model, dataset, device, label_names=None, save_dir='./output/test
 if __name__ == "__main__":
     num_classes = 6  # 5 classes + background
     start_epoch = 0
-    epochs = 10
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     
     # Loading datasets
@@ -239,6 +238,8 @@ if __name__ == "__main__":
         start_epoch = loadcheckpoint(model, optimizer, lr_scheduler, checkpoint_path, device)
     else:
         print("Training New Model")
+        
+    epochs = start_epoch + 10  # Train for additional 10 epochs from start_epoch
         
     train_model(model, optimizer, lr_scheduler, train_loader, val_loader, device, start_epoch, epochs)
     
