@@ -12,6 +12,9 @@ from torchvision.datasets import CocoDetection
 from torchvision.transforms import functional as F
 from torchvision.ops import box_iou
 
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+
 # import class from another file
 from coco import CocoTransform
 
@@ -190,6 +193,11 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
         if epoch % 2 == 0:
             mean_iou = evaluate(model, val_loader, device)
             print(f"Validation mIoU (epoch {epoch}): {mean_iou:.4f}")
+            
+            coco_preds = generate_coco_preds(model, val_loader, device)
+            ap = evaluate_coco_ap('./data/val/annotations.json', coco_preds)
+            print(f"Validation mAP (epoch {epoch}): {ap:.4f}")
+            
             visualize_preds(model, val_loader.dataset, device, idx=random.randint(0, len(val_loader.dataset) - 1), label_names=LABEL_NAMES, save_dir='./output/training', threshold=0.5)
             
         if mean_iou > best_iou:
@@ -208,7 +216,54 @@ def test_model(model, dataset, device, label_names=None, save_dir='./output/test
     for idx in range(len(dataset)):
         visualize_preds(model, dataset, device, idx=idx, label_names=label_names, threshold=threshold, save_dir=save_dir)
     model.train() # Back to train mode
+    
+def generate_coco_preds(model, data_loader, device):
+    model.eval()
+    results = []
+    
+    with torch.no_grad():
+        for images, targets in data_loader:
+            # images to device, run inference
+            images = [img.to(device) for img in images]
+            outputs = model(images)
 
+            for output, target in zip(outputs, targets):
+                # Ground truth image_id
+                image_id = target[0]['image_id']
+                
+                # Predictions
+                boxes = output["boxes"].cpu().numpy()
+                scores = output["scores"].cpu().numpy()
+                labels = output["labels"].cpu().numpy()
+                
+                for box, score, label in zip(boxes, scores, labels):
+                    x1, y1, x2, y2 = box.tolist()
+                    width = x2 - x1
+                    height = y2 - y1
+                    
+                    # append COCO prediction
+                    result.append({
+                        "image_id": int(image_id),
+                        "category_id": int(label),
+                        "bbox": [x1, y1, width, height],
+                        "score": float(score)
+                    })
+    
+    return results
+
+def evaluate_coco_ap(annotations, predictions):
+    coco_gt = COCO(annotations) # truth annoations
+    coco_dt = coco_gt.loadRes(predictions) # model predictions
+    
+    coco_eval = COCOeval(coco_gt, coco_dt, iouType='bbox')
+    
+    # Evaluate
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    coco_eval.summarize()
+    
+    return coco_eval.stats[0]  # mAP (AP@0.5:0.95)
+            
 if __name__ == "__main__":
     num_classes = 6  # 5 classes + background
     start_epoch = 0
@@ -252,5 +307,9 @@ if __name__ == "__main__":
     
     final_test_iou = evaluate(model, test_loader, device)
     print(f"Test mIoU: {final_test_iou:.4f}")
+    
+    coco_test_preds = generate_coco_preds(model, test_loader, device)
+    final_test_ap = evaluate_coco_ap('./data/test/annotations.json', coco_test_preds)
+    print(f"Test mAP: {final_test_ap:.4f}")
     
     test_model(model, test_dataset, device, label_names=LABEL_NAMES)
