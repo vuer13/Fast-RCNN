@@ -3,7 +3,7 @@ dataset/
 data/
 prepped_data/
 cropped_cards/
-model/
+model lr=1e-3/
 data.zip
 .DS_Store
 output/training
