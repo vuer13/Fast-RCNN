@@ -6,6 +6,7 @@ cropped_cards/
 model lr=1e-3/
 data.zip
 .DS_Store
-output/training
+output_1/training
+output_1/test_preds
 yolo.pt
 .DS_Store
