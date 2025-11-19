@@ -207,7 +207,7 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
             save_checkpoint(model, optimizer, scheduler, epoch, "./model/best_model.pth")
     
         if epoch % 5 == 0:
-            save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch + 1}.pth')
+            save_checkpoint(model, optimizer, scheduler, epoch, f'./model/fastrcnn_epoch_{epoch}.pth')
         
         save_checkpoint(model, optimizer, scheduler, epoch, './model/checkpoint_latest.pth')
     
