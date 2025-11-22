@@ -10,3 +10,9 @@ output_1/training
 output_1/test_preds
 yolo.pt
 .DS_Store
+
+__pycache__/
+output/training/
+output/test_preds/
+
+model lr=1e-4/

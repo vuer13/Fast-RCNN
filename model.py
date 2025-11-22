@@ -120,7 +120,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch):
     print(f"Epoch {epoch}, Loss: {losses.item()}, Avg Loss: {np.mean(losses_per_epoch):.4f}")
     
 # Evaluation
-def evaluate(model, data_loader, device, threshold=0.5):
+def evaluate(model, data_loader, device, threshold=0.85):
     model.eval() # Evaluation mode
     total_iou, count = 0.0, 0
     
@@ -153,7 +153,7 @@ def evaluate(model, data_loader, device, threshold=0.5):
     return mean_iou
 
 # Visualization function
-def visualize_preds(model, dataset, device, idx=0, label_names=None, threshold=0.5, save_dir='./output'):
+def visualize_preds(model, dataset, device, idx=0, label_names=None, threshold=0.85, save_dir='./output'):
     model.eval() # Evaluation mode
     os.makedirs(save_dir, exist_ok=True)
     
@@ -211,7 +211,7 @@ def train_model(model, optimizer, scheduler, train_loader, val_loader, device, s
         
         save_checkpoint(model, optimizer, scheduler, epoch, './model/checkpoint_latest.pth')
     
-def test_model(model, dataset, device, label_names=None, save_dir='./output/test_preds', threshold=0.5):
+def test_model(model, dataset, device, label_names=None, save_dir='./output/test_preds', threshold=0.85):
     model.eval() # Evaluation mode
     os.makedirs(save_dir, exist_ok=True)
     for idx in range(len(dataset)):
