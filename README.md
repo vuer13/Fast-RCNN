@@ -9,4 +9,4 @@ Performance:
 
 ### Further Work:
 - Integrating semi-supervised learning to leverage unlabeled card images
-- Expanding dataset size to improve generalization and class balance
+- Expanding dataset size and variance to improve generalization and class balance
