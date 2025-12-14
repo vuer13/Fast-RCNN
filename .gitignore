@@ -1,18 +1,40 @@
-dataset/
+# --- Python & System ---
+__pycache__/
+*.py[cod]
+.DS_Store
 .venv/
+venv/
+env/
+
+# --- IDE Settings ---
+.vscode/
+.idea/
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- Data & Datasets ---
+# Large data folders
 data/
+dataset/
 prepped_data/
 cropped_cards/
-model lr=1e-3/
-data.zip
-.DS_Store
-output_1
-yolo.pt
-.DS_Store
 
-__pycache__/
-output
+# Compressed archives
+*.zip
+*.tar.gz
 
-model lr=1e-4/
-.vscode/
-.git
+# --- Models & Weights ---
+# Specific ML weights
+*.pt
+*.pth
+*.onnx
+
+# Experiment directories (Using wildcard to catch all learning rates)
+model lr*/
+
+# --- Outputs & Logs ---
+output/
+output_*/
+runs/
+logs/
