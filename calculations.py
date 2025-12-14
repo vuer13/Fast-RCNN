@@ -103,9 +103,7 @@ def plot_confusion_matrix_heatmap(cm, class_names, save_path=None):
     if save_path is not None:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved heatmap to: {save_path}")
-        
-    plt.show()
-    
+            
 def main(model, test_loader, device):
     class_names = [
         "background",
