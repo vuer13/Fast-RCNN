@@ -63,26 +63,26 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
 
                         if g_i not in used_gt:
                             # True positive
-                            gt_all.append(g_label)
-                            pred_all.append(p_label)
+                            all_gt.append(g_label)
+                            all_pred.append(p_label)
                             used_gt.add(g_i)
                         else:
                             # Duplicate detection: FP
-                            gt_all.append(0)
-                            pred_all.append(p_label)
+                            all_gt.append(0)
+                            all_pred.append(p_label)
                     else:
                         # IoU too low: FP
-                        gt_all.append(0)
-                        pred_all.append(p_label)
+                        all_gt.append(0)
+                        all_pred.append(p_label)
                         
                 # FN: GT not matched by prediction
                 for g_i, g_label in enumerate(gt_labels):
                     if g_i not in used_gt:
-                        gt_all.append(g_label) 
-                        pred_all.append(0)   
+                        all_gt.append(g_label) 
+                        all_pred.append(0)   
               
     print("Finished computing confusion matrix")          
-    cm = confusion_matrix(gt_all, pred_all, labels=list(range(num_classes)))
+    cm = confusion_matrix(all_gt, all_pred, labels=list(range(num_classes)))
     return cm
 
 def plot_confusion_matrix_heatmap(cm, class_names, save_path=None):
