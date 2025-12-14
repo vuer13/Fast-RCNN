@@ -32,6 +32,7 @@ cropped_cards/
 
 # Experiment directories (Using wildcard to catch all learning rates)
 model lr*/
+model_lr*/
 
 # --- Outputs & Logs ---
 output/

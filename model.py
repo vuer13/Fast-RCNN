@@ -67,6 +67,12 @@ def loadcheckpoint(model, optimizer, scheduler, path, device):
     print("Loaded checkpoint from", path, "at epoch", start_epoch)
     return start_epoch
 
+# Loads overall model
+def load_model_weights(model, path, device):
+    checkpoint = torch.load(path, map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    print(f"Loaded model from {path}")
+
 # Training function - trains one epoch
 def train_one_epoch(model, optimizer, data_loader, device, epoch):
     model.train()
@@ -345,11 +351,21 @@ def model_main():
 if __name__ == "__main__":
     num_classes = 6  # 5 classes + background
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-    val_dataset = get_coco_dataset(img_dir='./data/val/images', annotation_file='./data/val/annotations.json')
-    val_loader=DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
+    
+    test_dataset = get_coco_dataset(img_dir='./data/test/images', annotation_file='./data/test/annotations.json')
+    test_loader = DataLoader(test_dataset, batch_size=1,shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
     
     model = get_model(num_classes)
     model.to(device)
     
-    main(model, val_loader, device)
+    checkpoint_path = './model_lr=1e-4/best_model.pth'
+
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+
+    try:
+        load_model_weights(model, checkpoint_path, device)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load checkpoint: {checkpoint_path}")
+    
+    main(model, test_loader, device)

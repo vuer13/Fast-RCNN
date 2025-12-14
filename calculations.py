@@ -23,7 +23,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
             for pred, t in zip(preds, targets):
                 
                 # Filter predictions
-                keep = pred['scores'] > score_threshold # only keep boxes with score > 0.825
+                keep = pred['scores'] > score_threshold # only keep boxes with score > score_threshold
                 pred_boxes = pred['boxes'][keep] # Filtered boxes
                 pred_labels = pred['labels'][keep].cpu().numpy() # Filtered labels to numpy arrays
                 
@@ -38,7 +38,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
                     
                 # Convert to tensors    
                 gt_boxes = torch.tensor(gt_boxes, dtype=torch.float32, device=device)
-                gt_labels = np.array(gt_labels)
+                gt_labels = np.array(gt_labels, dtype=int)
 
                 # All FN if no predictions
                 if len(pred_boxes) == 0:
@@ -54,7 +54,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
                 
                 # Processing each prediction
                 for i, iou in enumerate(max_ious):
-                    p_label = int(pred_labels[i].item())
+                    p_label = int(pred_labels[i])
                     
                     if iou >= iou_threshold:
                         # Check if ground truth is unused: TP
@@ -106,7 +106,7 @@ def plot_confusion_matrix_heatmap(cm, class_names, save_path=None):
         
     plt.show()
     
-def main(model, val_loader, device):
+def main(model, test_loader, device):
     class_names = [
         "background",
         "name",
@@ -118,10 +118,10 @@ def main(model, val_loader, device):
 
     cm = compute_confusion_matrix(
         model,
-        val_loader,
+        test_loader,
         device,
         iou_threshold=0.5,
-        score_threshold=0.825,
+        score_threshold=0.5,
         num_classes=6
     )
     
