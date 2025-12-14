@@ -19,6 +19,8 @@ from pycocotools.cocoeval import COCOeval
 # import class from another file
 from coco import CocoTransform
 
+from calculations import *
+
 LABEL_NAMES = {
     1: "name",
     2: "card number",
@@ -290,7 +292,7 @@ def evaluate_coco_ap(annotations, predictions):
     
     return coco_eval.stats[0]  # mAP (AP@0.5:0.95)
             
-if __name__ == "__main__":
+def model_main():
     num_classes = 6  # 5 classes + background
     start_epoch = 0
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -339,3 +341,15 @@ if __name__ == "__main__":
     print(f"Test mAP: {final_test_ap:.4f}")
     
     test_model(model, test_dataset, device, label_names=LABEL_NAMES)
+    
+if __name__ == "__main__":
+    num_classes = 6  # 5 classes + background
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    val_dataset = get_coco_dataset(img_dir='./data/val/images', annotation_file='./data/val/annotations.json')
+    val_loader=DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=lambda x: tuple(zip(*x)))
+    
+    model = get_model(num_classes)
+    model.to(device)
+    
+    main(model, val_loader, device)

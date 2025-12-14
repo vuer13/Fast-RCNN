@@ -14,7 +14,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
     
     with torch.no_grad():
         # Looping over dataset
-        from images, targets in data_loader:
+        for images, targets in data_loader:
             images = list(img.to(device) for img in images)
             preds = model(images)
             
@@ -104,7 +104,7 @@ def plot_confusion_matrix_heatmap(cm, class_names, save_path=None):
         
     plt.show()
     
-if __name__ == "__main__":
+def main(model, val_loader, device):
     class_names = [
         "background",
         "name",
@@ -114,12 +114,12 @@ if __name__ == "__main__":
         "card type"
     ]
 
-    cm = compute_detection_confusion_matrix(
+    cm = compute_confusion_matrix(
         model,
         val_loader,
         device,
-        iou_thresh=0.5,
-        score_thresh=0.85,
+        iou_threshold=0.5,
+        score_threshold=0.825,
         num_classes=6
     )
     
