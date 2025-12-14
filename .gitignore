@@ -6,13 +6,11 @@ cropped_cards/
 model lr=1e-3/
 data.zip
 .DS_Store
-output_1/training
-output_1/test_preds
+output_1
 yolo.pt
 .DS_Store
 
 __pycache__/
-output/training/
-output/test_preds/
+output
 
 model lr=1e-4/
