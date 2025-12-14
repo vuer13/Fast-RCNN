@@ -14,3 +14,5 @@ __pycache__/
 output
 
 model lr=1e-4/
+.vscode/
+.git
