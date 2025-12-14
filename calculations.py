@@ -14,6 +14,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
     
     with torch.no_grad():
         # Looping over dataset
+        print("Starting confusion matrix computation")
         for images, targets in data_loader:
             images = list(img.to(device) for img in images)
             preds = model(images)
@@ -79,7 +80,8 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
                     if g_i not in used_gt:
                         gt_all.append(g_label) 
                         pred_all.append(0)   
-                        
+              
+    print("Finished computing confusion matrix")          
     cm = confusion_matrix(gt_all, pred_all, labels=list(range(num_classes)))
     return cm
 
