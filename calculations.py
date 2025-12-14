@@ -6,7 +6,7 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, score_threshold=0.825, num_classes=6):
+def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, score_threshold=0.5, num_classes=6):
     model.eval()
     
     all_gt = [] # Ground truth values
@@ -25,7 +25,7 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
                 # Filter predictions
                 keep = pred['scores'] > score_threshold # only keep boxes with score > 0.825
                 pred_boxes = pred['boxes'][keep] # Filtered boxes
-                pred_labels = pred['labels'][keep] # Filtered labels
+                pred_labels = pred['labels'][keep].cpu().numpy() # Filtered labels to numpy arrays
                 
                 # Ground truth boxes and labels
                 gt_boxes = []
@@ -54,11 +54,11 @@ def compute_confusion_matrix(model, data_loader, device, iou_threshold=0.5, scor
                 
                 # Processing each prediction
                 for i, iou in enumerate(max_ious):
-                    p_label = pred_labels[i]
+                    p_label = int(pred_labels[i].item())
                     
-                    if iou >= iou_thresh:
+                    if iou >= iou_threshold:
                         # Check if ground truth is unused: TP
-                        g_i = gt_idx[i].item()
+                        g_i = gt_id[i].item()
                         g_label = gt_labels[g_i]
 
                         if g_i not in used_gt:
@@ -133,4 +133,4 @@ def main(model, val_loader, device):
     np.savetxt("plots/confusion_matrix.txt", cm, fmt="%d")
     print("Saved matrix as txt to plots/confusion_matrix.txt")
 
-    plot_confusion_matrix_heatmap(cm, class_names, './plots')
+    plot_confusion_matrix_heatmap(cm, class_names, save_path='./plots/confusion_matrix.png')
